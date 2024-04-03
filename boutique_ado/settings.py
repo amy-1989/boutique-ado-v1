@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,9 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-x1$-rlinjl_j@+1(u6^)b)l%rln8vf+ss$=_#!+h!k3_6xyojl'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['8000-amy1989-boutiqueadov1-a3jte4ofkz1.ws-eu110.gitpod.io']
+ALLOWED_HOSTS = ['8000-amy1989-boutiqueadov1-a3jte4ofkz1.ws-eu110.gitpod.io',
+                '*herokuapp.com']
 
 
 # Application definition
@@ -43,7 +45,11 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'home',
-    'products'
+    'products',
+    'bag',
+    'checkout',
+    'crispy_forms',
+    'profiles',
 ]
 
 
@@ -59,6 +65,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'boutique_ado.urls'
 
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -72,10 +80,18 @@ TEMPLATES = [
                 'django.template.context_processors.request', #required by allauth
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
+                'bag.contexts.bag_contents',
             ],
+            'builtins': [
+                'crispy_forms.templatetags.crispy_forms_tags',
+                'crispy_forms.templatetags.crispy_forms_field',
+            ]
         },
     },
 ]
+
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 AUTHENTICATION_BACKENDS = (
 
@@ -106,12 +122,17 @@ WSGI_APPLICATION = 'boutique_ado.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if 'DATABASE_URL' in os.environ:
+    DATABASES = {
+        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 
 # Password validation
@@ -155,6 +176,27 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+#Stripe
+
+FREE_DELIVERY_THRESHOLD = 50
+STANDARD_DELIVERY_PERCENTAGE = 10
+STRIPE_CURRENCY = 'usd'
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', '')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WH_SECRET = os.getenv('STRIPE_WH_SECRET', '')
+
+if 'DEVELOPMENT' in os.environ:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'boutiqueado@example.com'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_USE_TLS = True
+    EMAIL_PORT = 587
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASS')
+    DEFAULT_FROM_EMAIL = os.environ.get('EMAIL_HOST_USER')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
